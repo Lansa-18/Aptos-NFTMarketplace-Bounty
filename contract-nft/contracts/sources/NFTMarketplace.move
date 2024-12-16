@@ -1,7 +1,7 @@
 // TODO# 1: Define Module and Marketplace Address
 address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
 
-    module NFTMarketplace {
+    module NFTMarketplaceV3 {
         use 0x1::signer;
         use 0x1::vector;
         use 0x1::coin;
@@ -19,7 +19,8 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
             uri: vector<u8>,
             price: u64,
             for_sale: bool,
-            rarity: u8  // 1 for common, 2 for rare, 3 for epic, etc.
+            rarity: u8,  // 1 for common, 2 for rare, 3 for epic, etc.
+            is_auctioned: bool
         }
 
 
@@ -69,7 +70,8 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
                 uri,
                 price: 0,
                 for_sale: false,
-                rarity
+                rarity,
+                is_auctioned: false
             };
 
             vector::push_back(&mut marketplace.nfts, new_nft);
@@ -78,11 +80,11 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
 
         // TODO# 9: View NFT Details
         #[view]
-        public fun get_nft_details(marketplace_addr: address, nft_id: u64): (u64, address, vector<u8>, vector<u8>, vector<u8>, u64, bool, u8) acquires Marketplace {
+        public fun get_nft_details(marketplace_addr: address, nft_id: u64): (u64, address, vector<u8>, vector<u8>, vector<u8>, u64, bool, u8, bool) acquires Marketplace {
             let marketplace = borrow_global<Marketplace>(marketplace_addr);
             let nft = vector::borrow(&marketplace.nfts, nft_id);
 
-            (nft.id, nft.owner, nft.name, nft.description, nft.uri, nft.price, nft.for_sale, nft.rarity)
+            (nft.id, nft.owner, nft.name, nft.description, nft.uri, nft.price, nft.for_sale, nft.rarity, nft.is_auctioned)
         }
 
         
@@ -311,6 +313,9 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
                 is_completed: false
             };
 
+            // setting the nft auction status
+            nft_ref.is_auctioned = true;
+
             // Store auction and mark NFT as not for direct sale
             table::add(&mut auction_store.auctions, nft_id, auction);
             nft_ref.for_sale = false;
@@ -413,16 +418,18 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
 
         // TODO# 27: View Auction Details
         #[view]
-        public fun get_auction_details(marketplace_addr: address, nft_id: u64): (u64, address, u64, u64, u64, address) acquires AuctionStore {
+        public fun get_auction_details(marketplace_addr: address, nft_id: u64): (u64, address, u64, u64, u64, address, u64, bool) acquires AuctionStore {
             let auction_store = borrow_global<AuctionStore>(marketplace_addr);
             let auction = table::borrow(&auction_store.auctions, nft_id);
             (
-                auction.nft_id,
-                auction.seller,
-                auction.start_time,
-                auction.end_time,
-                auction.highest_bid,
-                auction.highest_bidder,                
+            auction.nft_id,
+            auction.seller,
+            auction.start_time,
+            auction.end_time,
+            auction.highest_bid,
+            auction.highest_bidder,
+            auction.minimum_bid,
+            auction.is_completed
             )
         }
 

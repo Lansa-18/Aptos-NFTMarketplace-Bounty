@@ -7,11 +7,13 @@ import NavBar from "./components/NavBar";
 import MarketView from "./pages/MarketView";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MyNFTs from "./pages/MyNFTs";
+import AuctionPage from "./pages/AuctionPage";
 import { AptosClient } from "aptos";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 
 const client = new AptosClient("https://fullnode.devnet.aptoslabs.com/v1");
-const marketplaceAddr = "0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4";
+const marketplaceAddr =
+  "0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4";
 
 function App() {
   const { signAndSubmitTransaction } = useWallet();
@@ -20,20 +22,29 @@ function App() {
   // Function to open the Mint NFT modal
   const handleMintNFTClick = () => setIsModalVisible(true);
 
-  const handleMintNFT = async (values: { name: string; description: string; uri: string; rarity: number }) => {
+  const handleMintNFT = async (values: {
+    name: string;
+    description: string;
+    uri: string;
+    rarity: number;
+  }) => {
     try {
       const nameVector = Array.from(new TextEncoder().encode(values.name));
-      const descriptionVector = Array.from(new TextEncoder().encode(values.description));
+      const descriptionVector = Array.from(
+        new TextEncoder().encode(values.description)
+      );
       const uriVector = Array.from(new TextEncoder().encode(values.uri));
 
       const entryFunctionPayload = {
         type: "entry_function_payload",
-        function: `${marketplaceAddr}::NFTMarketplace::mint_nft`,
+        function: `${marketplaceAddr}::NFTMarketplaceV3::mint_nft`,
         type_arguments: [],
         arguments: [nameVector, descriptionVector, uriVector, values.rarity],
       };
 
-      const txnResponse = await (window as any).aptos.signAndSubmitTransaction(entryFunctionPayload);
+      const txnResponse = await (window as any).aptos.signAndSubmitTransaction(
+        entryFunctionPayload
+      );
       await client.waitForTransaction(txnResponse.hash);
 
       message.success("NFT minted successfully!");
@@ -47,13 +58,16 @@ function App() {
   return (
     <Router>
       <Layout>
-        <NavBar onMintNFTClick={handleMintNFTClick} /> {/* Pass handleMintNFTClick to NavBar */}
-
+        <NavBar onMintNFTClick={handleMintNFTClick} />{" "}
+        {/* Pass handleMintNFTClick to NavBar */}
         <Routes>
-          <Route path="/" element={<MarketView marketplaceAddr={marketplaceAddr} />} />
+          <Route
+            path="/"
+            element={<MarketView marketplaceAddr={marketplaceAddr} />}
+          />
           <Route path="/my-nfts" element={<MyNFTs />} />
+          <Route path="/my-auctions" element={<AuctionPage />} />
         </Routes>
-
         <Modal
           title="Mint New NFT"
           visible={isModalVisible}
@@ -61,16 +75,34 @@ function App() {
           footer={null}
         >
           <Form layout="vertical" onFinish={handleMintNFT}>
-            <Form.Item label="Name" name="name" rules={[{ required: true, message: "Please enter a name!" }]}>
+            <Form.Item
+              label="Name"
+              name="name"
+              rules={[{ required: true, message: "Please enter a name!" }]}
+            >
               <Input />
             </Form.Item>
-            <Form.Item label="Description" name="description" rules={[{ required: true, message: "Please enter a description!" }]}>
+            <Form.Item
+              label="Description"
+              name="description"
+              rules={[
+                { required: true, message: "Please enter a description!" },
+              ]}
+            >
               <Input />
             </Form.Item>
-            <Form.Item label="URI" name="uri" rules={[{ required: true, message: "Please enter a URI!" }]}>
+            <Form.Item
+              label="URI"
+              name="uri"
+              rules={[{ required: true, message: "Please enter a URI!" }]}
+            >
               <Input />
             </Form.Item>
-            <Form.Item label="Rarity" name="rarity" rules={[{ required: true, message: "Please select a rarity!" }]}>
+            <Form.Item
+              label="Rarity"
+              name="rarity"
+              rules={[{ required: true, message: "Please select a rarity!" }]}
+            >
               <Select>
                 <Select.Option value={1}>Common</Select.Option>
                 <Select.Option value={2}>Uncommon</Select.Option>
