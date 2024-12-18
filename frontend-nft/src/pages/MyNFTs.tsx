@@ -197,8 +197,10 @@ const MyNFTs: React.FC = () => {
       };
       const response = await (window as any).aptos.signAndSubmitTransaction(entryFunctionPayload);
       console.log(response);
-      
-      
+      await client.waitForTransaction(response.hash);
+      message.success("NFT transferred successfully!");
+      setIsTransferModalVisible(false);
+      setSelectedNftForTransfer(null);    
     } catch (error) {
       console.error("Error transferring NFT:", error);
       message.error("Failed to transfer NFT.");
@@ -283,7 +285,7 @@ const MyNFTs: React.FC = () => {
   );
 
   return (
-    <div className="w-[95%] border-blue-500 mx-auto border">
+    <div className="w-[95%] border-blue-500 mx-auto">
       <div className="text-center">
         <Title level={2} style={{ marginBottom: "20px" }}>
           My Collection
@@ -291,9 +293,9 @@ const MyNFTs: React.FC = () => {
         <p>Your personal collection of NFTs.</p>
       </div>
 
-      <section className="border-red-500 flex gap-6">
+      <section className="border-red-500 flex flex-wrap gap-6 justify-between">
         {paginatedNFTs.map((nft) => (
-          <article className="bg-base-100 shadow-xl rounded-lg w-full border-black">
+          <article className="bg-base-100 shadow-xl rounded-lg w-full border border-slate-300 max-w-xs">
             <figure className="h-[15rem] border-red-500">
               <img
                 className="object-cover h-full w-full rounded-t-lg"

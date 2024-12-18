@@ -18,6 +18,7 @@ const marketplaceAddr =
 function App() {
   const { signAndSubmitTransaction } = useWallet();
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [form] = Form.useForm();
 
   // Function to open the Mint NFT modal
   const handleMintNFTClick = () => setIsModalVisible(true);
@@ -49,6 +50,7 @@ function App() {
 
       message.success("NFT minted successfully!");
       setIsModalVisible(false);
+      form.resetFields();
     } catch (error) {
       console.error("Error minting NFT:", error);
       message.error("Failed to mint NFT.");
@@ -74,7 +76,7 @@ function App() {
           onCancel={() => setIsModalVisible(false)}
           footer={null}
         >
-          <Form layout="vertical" onFinish={handleMintNFT}>
+          <Form layout="vertical" onFinish={handleMintNFT} form={form}>
             <Form.Item
               label="Name"
               name="name"
