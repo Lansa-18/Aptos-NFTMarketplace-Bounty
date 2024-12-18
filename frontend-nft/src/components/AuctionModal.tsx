@@ -27,6 +27,7 @@ export default function AuctionModal({
   handleSetMinBid,
   handleSetAuctionDuration,
 }: AuctionModalProps) {
+
   return (
     <Modal
       title="Create Auction"
@@ -41,7 +42,7 @@ export default function AuctionModal({
           type="primary"
           onClick={() =>
             selectedNft &&
-            handleCreateAuction(selectedNft.id, parseInt(minBid), parseFloat(auctionDuration))
+            handleCreateAuction(selectedNft.id, parseInt(minBid), parseInt(auctionDuration))
           }
         >
           Create Auction

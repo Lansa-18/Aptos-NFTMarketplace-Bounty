@@ -1,7 +1,7 @@
 // TODO# 1: Define Module and Marketplace Address
 address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
 
-    module NFTMarketplaceV3 {
+    module NFTMarketplaceV2 {
         use 0x1::signer;
         use 0x1::vector;
         use 0x1::coin;
@@ -306,7 +306,7 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
                 nft_id,
                 seller: signer::address_of(account),
                 start_time: timestamp::now_seconds(),
-                end_time: timestamp::now_seconds() + auction_duration,
+                end_time: timestamp::now_seconds() + (auction_duration * 86400),
                 minimum_bid: minimum_bid,
                 highest_bid: 0,
                 highest_bidder: @0x0,
@@ -433,6 +433,21 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
             )
         }
 
+        public entry fun transfer_nft_to_wallets(account: &signer, receiver: address, nft_id: u64) acquires Marketplace {
+            let marketplace = borrow_global_mut<Marketplace>(signer::address_of(account));
+            let nft = vector::borrow_mut(&mut marketplace.nfts, nft_id);
+
+            // Ensurig the caller is the current owner of the NFT
+            assert!(nft.owner == signer::address_of(account),300);
+
+            // Preventing the transfer to the same owner
+            assert!(nft.owner != receiver, 301);
+
+            // Updating NFT ownership and resetting its for_sale status and price
+            nft.owner = receiver;
+            nft.for_sale = false;
+            nft.price = 0;
+        }
 
     }
 }

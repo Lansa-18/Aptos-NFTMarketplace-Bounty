@@ -13,11 +13,12 @@ import {
 import { AptosClient } from "aptos";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import AuctionModal from "../components/AuctionModal";
+import TransferNftModal from "../components/TransferNftModal";
 
 const { Title } = Typography;
 const { Meta } = Card;
 
-const client = new AptosClient("https://fullnode.devnet.aptoslabs.com/v1");
+const client = new AptosClient("https://fullnode.testnet.aptoslabs.com/v1");
 
 export type NFT = {
   id: number;
@@ -49,8 +50,10 @@ const MyNFTs: React.FC = () => {
   const [highestBidder, setHighestBidder] = useState<string>("");
   const [auctionStartTime, setAuctionStartTime] = useState<string>("");
   const [auctionEndTime, setAuctionEndTime] = useState<string>("");
-  const [auctionEndPrice, setAuctionEndPrice] = useState<string>("");
-
+  const [selectedNftForTransfer, setSelectedNftForTransfer] =
+    useState<NFT | null>(null);
+  const [isTransferModalVisible, setIsTransferModalVisible] = useState(false);
+  const [recipientOfNft, setRecipientOfNft] = useState<string>("");
   const [selectedNft, setSelectedNft] = useState<NFT | null>(null);
   const [salePrice, setSalePrice] = useState<string>("");
 
@@ -61,7 +64,7 @@ const MyNFTs: React.FC = () => {
       console.log("Fetching NFT IDs for owner:", account.address);
 
       const nftIdsResponse = await client.view({
-        function: `${marketplaceAddr}::NFTMarketplaceV3::get_all_nfts_for_owner`,
+        function: `${marketplaceAddr}::NFTMarketplaceV2::get_all_nfts_for_owner`,
         arguments: [marketplaceAddr, account.address, "100", "0"],
         type_arguments: [],
       });
@@ -84,7 +87,7 @@ const MyNFTs: React.FC = () => {
           nftIds.map(async (id) => {
             try {
               const nftDetails = await client.view({
-                function: `${marketplaceAddr}::NFTMarketplaceV3::get_nft_details`,
+                function: `${marketplaceAddr}::NFTMarketplaceV2::get_nft_details`,
                 arguments: [marketplaceAddr, id],
                 type_arguments: [],
               });
@@ -170,6 +173,38 @@ const MyNFTs: React.FC = () => {
     setMinBid("");
   };
 
+  const handleTransferNftClick = (nft: NFT) => {
+    setSelectedNftForTransfer(nft);
+    setIsTransferModalVisible(true);
+  };
+
+  const handleTransferNftCancel = () => {
+    setIsTransferModalVisible(false);
+    setSelectedNftForTransfer(null);
+  };
+
+  const handleConfirmTransfer = async (
+    recipient: string,
+    nftId: number
+  ) => {
+    try {
+      console.log(recipient, nftId);
+      const entryFunctionPayload = {
+        type: "entry_function_payload",
+        function: `${marketplaceAddr}::NFTMarketplaceV2::transfer_nft_to_wallets`,
+        type_arguments: [],
+        arguments: [recipient, nftId],
+      };
+      const response = await (window as any).aptos.signAndSubmitTransaction(entryFunctionPayload);
+      console.log(response);
+      
+      
+    } catch (error) {
+      console.error("Error transferring NFT:", error);
+      message.error("Failed to transfer NFT.");
+    }
+  }
+
   const handleConfirmListing = async () => {
     if (!selectedNft || !salePrice) return;
 
@@ -178,7 +213,7 @@ const MyNFTs: React.FC = () => {
 
       const entryFunctionPayload = {
         type: "entry_function_payload",
-        function: `${marketplaceAddr}::NFTMarketplaceV3::list_for_sale`,
+        function: `${marketplaceAddr}::NFTMarketplaceV2::list_for_sale`,
         type_arguments: [],
         arguments: [
           marketplaceAddr,
@@ -208,6 +243,7 @@ const MyNFTs: React.FC = () => {
     minBid: number,
     duration: number
   ) => {
+    if (!nftId || !minBid || !duration) return;
     console.log(nftId);
     console.log(minBid);
     console.log(duration);
@@ -215,7 +251,7 @@ const MyNFTs: React.FC = () => {
     try {
       const entryFunctionPayload = {
         type: "entry_function_payload",
-        function: `${marketplaceAddr}::NFTMarketplaceV3::create_auction`,
+        function: `${marketplaceAddr}::NFTMarketplaceV2::create_auction`,
         type_arguments: [],
         arguments: [nftId, minBid, duration],
       };
@@ -235,7 +271,7 @@ const MyNFTs: React.FC = () => {
       setAuctionDuration("");
       setMinBid("");
     }
-  };  
+  };
 
   useEffect(() => {
     fetchUserNFTs();
@@ -247,7 +283,7 @@ const MyNFTs: React.FC = () => {
   );
 
   return (
-    <div className="w-[95%] border-blue-500 mx-auto">
+    <div className="w-[95%] border-blue-500 mx-auto border">
       <div className="text-center">
         <Title level={2} style={{ marginBottom: "20px" }}>
           My Collection
@@ -276,12 +312,15 @@ const MyNFTs: React.FC = () => {
               </p>
               <p>Is Auctioned: {nft.is_auctioned ? "Yes" : "No"}</p>
             </div>
-            <div className="p-4 flex justify-between">
+            <div className="p-4 flex flex-col justify-between">
               <Button type="link" onClick={() => handleSellClick(nft)}>
                 Sell
               </Button>
               <Button type="link" onClick={() => handleAuctionClick(nft)}>
                 Auction
+              </Button>
+              <Button type="link" onClick={() => handleTransferNftClick(nft)}>
+                Transfer NFTs
               </Button>
             </div>
           </article>
@@ -351,6 +390,15 @@ const MyNFTs: React.FC = () => {
         selectedNft={selectedNftForAuction}
         isAuctionModalVisible={isAuctionModalVisible}
         handleAuctionCancel={handleAuctionCancel}
+      />
+
+      <TransferNftModal
+        recipient={recipientOfNft}
+        selectedNft={selectedNftForTransfer}
+        isTransferModalVisible={isTransferModalVisible}
+        handleTransferNftCancel={handleTransferNftCancel}
+        handleConfirmTransfer={handleConfirmTransfer}
+        handleSetRecipient={setRecipientOfNft}
       />
     </div>
   );

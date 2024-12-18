@@ -33,3 +33,8 @@ https://fastly.picsum.photos/id/338/200/200.jpg?hmac=5S5SeR5xW8mbN3Ml7wTTJPePX39
 Name: Eternal Cascade
 Description: A waterfall that flows endlessly, reflecting the infinite beauty of nature.
 https://fastly.picsum.photos/id/572/200/200.jpg?hmac=YFsNUCQc2Dfz_5O0HY8HmDfquz04XrdcpJ0P4Z7plRY
+
+
+// TODOs to take note of
+- Check if an NFT is currently auctioned, it's auction price is displayed
+- Check if an NFT is currently auctioned, it should not be possible to list / transfer that same NFT for sale, the same should hold true if an NFT is currently for sale. An error message should be shown saying that you can't auction this NFT as it's currently for sale.
