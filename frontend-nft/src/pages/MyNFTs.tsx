@@ -210,6 +210,11 @@ const MyNFTs: React.FC = () => {
   const handleConfirmListing = async () => {
     if (!selectedNft || !salePrice) return;
 
+    if (selectedNft.is_auctioned) {
+      message.error("NFT is already auctioned.");
+      return;
+    }
+
     try {
       const priceInOctas = parseFloat(salePrice) * 100000000;
 
@@ -231,12 +236,14 @@ const MyNFTs: React.FC = () => {
       await client.waitForTransaction(response.hash);
 
       message.success("NFT listed for sale successfully!");
-      setIsModalVisible(false);
-      setSalePrice("");
       fetchUserNFTs();
     } catch (error) {
       console.error("Error listing NFT for sale:", error);
       message.error("Failed to list NFT for sale.");
+    } finally {
+      setIsModalVisible(false);
+      setSelectedNft(null);
+      setSalePrice("");
     }
   };
 
@@ -251,6 +258,11 @@ const MyNFTs: React.FC = () => {
     console.log(duration);
 
     try {
+      if (selectedNftForAuction?.for_sale) {
+        message.error("NFT is already listed for sale.");
+        return;
+      }
+
       const entryFunctionPayload = {
         type: "entry_function_payload",
         function: `${marketplaceAddr}::NFTMarketplaceV2::create_auction`,
