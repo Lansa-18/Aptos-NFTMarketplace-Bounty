@@ -255,7 +255,7 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
         }
 
         // TODO #21: Define the Auction Structure
-        struct Auction has store, key {
+        struct Auction has store, key, drop {
             nft_id: u64,
             seller: address,
             start_time: u64,
@@ -399,22 +399,22 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
             nft_id: u64
         ) acquires AuctionStore, Marketplace {
             let auction_store = borrow_global_mut<AuctionStore>(seller);
-            let auction = table::borrow_mut(&mut auction_store.auctions, nft_id);
 
-            // Cancellation checks
+            // Perform cancellation checks first
+            let auction = table::borrow(&auction_store.auctions, nft_id);
             assert!(auction.seller == signer::address_of(account), E_NOT_AUCTION_OWNER);
             assert!(auction.highest_bidder == @0x0, E_INVALID_AUCTION);
             assert!(timestamp::now_seconds() < auction.end_time, E_AUCTION_ENDED);
 
+            // Borrow the marketplace and reset NFT status
             let marketplace = borrow_global_mut<Marketplace>(seller);
             let nft_ref = vector::borrow_mut(&mut marketplace.nfts, nft_id);
-            
-            // Reset NFT status
             nft_ref.for_sale = false;
+            nft_ref.is_auctioned = false;
 
-            // Mark auction as completed
-            auction.is_completed = true;
-        }    
+            // Remove the auction from the table
+            table::remove(&mut auction_store.auctions, nft_id);
+        }   
 
         // TODO# 27: View Auction Details
         #[view]

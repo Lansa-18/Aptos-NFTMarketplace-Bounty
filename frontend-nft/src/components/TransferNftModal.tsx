@@ -20,7 +20,7 @@ export default function AuctionModal({
 }: TransferNftModalProps) {
   return (
     <Modal
-      title="Create Auction"
+      title="Transfer NFT"
       open={isTransferModalVisible}
       onCancel={handleTransferNftCancel}
       footer={[

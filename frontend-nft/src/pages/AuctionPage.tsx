@@ -14,6 +14,7 @@ import {
 import { AptosClient } from "aptos";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { useEffect, useState } from "react";
+import DeleteModal from "../components/DeleteModal";
 
 const { Title } = Typography;
 const { Meta } = Card;
@@ -65,10 +66,14 @@ export default function AuctionPage() {
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [rarity, setRarity] = useState<"all" | number>("all");
   const [bidAmount, setBidAmount] = useState<string>("");
+  const [isDeleteModalVisibe, setIsDeleteModalVisibe] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
   const [selectedNft, setSelectedNft] = useState<NFT | null>(null);
+  const [selectedNftToDelete, setSelectedNftToDelete] = useState<NFT | null>(
+    null
+  );
   const [isBidNowModalVisible, setIsBidNowModalVisible] = useState(false);
   const marketplaceAddr =
     "0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4";
@@ -166,6 +171,43 @@ export default function AuctionPage() {
     setSelectedNft(null);
   };
 
+  const handleDeleteModalClick = (nft: NFT) => {
+    setSelectedNftToDelete(nft);
+    setIsDeleteModalVisibe(true);
+  };
+
+  const handleDeleteModalCancel = () => {
+    setIsDeleteModalVisibe(false);
+    setSelectedNftToDelete(null);
+  };
+
+  const handleCancelAuction = async () => {
+    try {
+      if (!selectedNftToDelete) return;
+
+      console.log(`Cancelling auction for NFT ID: ${selectedNftToDelete?.id}`);
+      const entryFunctionPayload = {
+        type: "entry_function_payload",
+        function: `${marketplaceAddr}::NFTMarketplaceV2::cancel_auction`,
+        type_arguments: [],
+        arguments: [marketplaceAddr, selectedNftToDelete?.id],
+      };
+
+      const response = await (window as any).aptos.signAndSubmitTransaction(entryFunctionPayload);
+      await client.waitForTransaction(response.hash);
+
+      message.success("Auction canceled successfully!");
+      console.log(response);
+      setIsDeleteModalVisibe(false);
+      setSelectedNftToDelete(null);
+      
+    } catch (error) {
+      console.error("Error canceling auction:", error);
+      message.error("Failed to cancel auction.");
+      
+    }
+  };
+
   const handleConfirmBid = async () => {
     if (!selectedNft) return;
     console.log(selectedNft);
@@ -175,7 +217,10 @@ export default function AuctionPage() {
       return;
     }
 
-    if (selectedNft.auction && Number(bidAmount) <= selectedNft.auction.highest_bid) {
+    if (
+      selectedNft.auction &&
+      Number(bidAmount) <= selectedNft.auction.highest_bid
+    ) {
       message.error("Your bid amount must be higher than the current bid.");
       return;
     }
@@ -188,21 +233,20 @@ export default function AuctionPage() {
         arguments: [marketplaceAddr, selectedNft.id, Number(bidAmount)],
       };
 
-      const response = await (window as any).aptos.signAndSubmitTransaction(entryFunctionPayload);
+      const response = await (window as any).aptos.signAndSubmitTransaction(
+        entryFunctionPayload
+      );
       await client.waitForTransaction(response.hash);
       message.success("Bid placed successfully!");
       console.log(response);
-      
+
       setIsBidNowModalVisible(false);
       setSelectedNft(null);
       setBidAmount("");
-
     } catch (error) {
       console.error("Error placing bid:", error);
       message.error("Failed to place bid.");
-      
     }
-
   };
 
   const calculateDaysRemaining = (endTime: number) => {
@@ -288,6 +332,9 @@ export default function AuctionPage() {
                 <Button type="link" onClick={() => handleBidForAuction(nft)}>
                   Bid Now
                 </Button>,
+                <Button type="link" onClick={() => handleDeleteModalClick(nft)}>
+                  Cancel Auction
+                </Button>,
               ]}
             >
               {/* Rarity Tag */}
@@ -357,7 +404,8 @@ export default function AuctionPage() {
               <strong>Name:</strong> {selectedNft.name}
             </p>
             <p>
-              <strong>Current Price:</strong> {selectedNft.auction?.minimum_bid} APT (You need to bid higher than this to win 🤑)
+              <strong>Current Price:</strong> {selectedNft.auction?.minimum_bid}{" "}
+              APT (You need to bid higher than this to win 🤑)
             </p>
             <p>
               <strong>Auction Duration:</strong>{" "}
@@ -378,6 +426,14 @@ export default function AuctionPage() {
           </>
         )}
       </Modal>
+
+      {/* Delete Modal */}
+      <DeleteModal
+        selectedNft={selectedNftToDelete}
+        handleCancelAuction={handleCancelAuction}
+        handleDeleteModalCancel={handleDeleteModalCancel}
+        isDeleteModalVisible={isDeleteModalVisibe}
+      />
     </div>
   );
 }
