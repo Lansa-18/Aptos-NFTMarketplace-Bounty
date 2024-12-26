@@ -100,4 +100,4 @@ npm start
 - The highest bidder receives the NFT
 - The seller receives the winning bid amount
 
-[Demo Video](https://youtu.be/HjlB2wxrmrw)
+[Demo Video](https://youtu.be/BuNjZED_Pjk)
