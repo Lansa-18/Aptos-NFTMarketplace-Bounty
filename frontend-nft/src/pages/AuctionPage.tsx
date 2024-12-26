@@ -253,7 +253,7 @@ export default function AuctionPage() {
       return;
     }
 
-    if (nft.auction?.end_time && Date.now() < nft.auction.end_time) {
+    if (nft.auction?.end_time && currentTime < nft.auction.end_time) {
       message.error("Auction has not ended yet.");
       return;
     }
@@ -281,11 +281,24 @@ export default function AuctionPage() {
     }
   };
 
-  const calculateDaysRemaining = (endTime: number) => {
-    const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+  const calculateTimeRemaining = (endTime: number) => {
+    const currentTime = Math.floor(Date.now() / 1000);
     const secondsRemaining = endTime - currentTime;
-    const daysRemaining = Math.floor(secondsRemaining / (60 * 60 * 24)); // Convert seconds to days
-    return daysRemaining;
+
+    if (secondsRemaining <= 0) {
+      return "Auction ended";
+    }
+
+    const days = Math.floor(secondsRemaining / (60 * 60 * 24));
+    const hours = Math.floor((secondsRemaining % (60 * 60 * 24)) / (60 * 60));
+    const minutes = Math.floor((secondsRemaining % (60 * 60)) / 60);
+
+    const timeArray = [];
+    if (days > 0) timeArray.push(`${days}d`);
+    if (hours > 0) timeArray.push(`${hours}h`);
+    if (minutes > 0) timeArray.push(`${minutes}m`);
+
+    return timeArray.join(" ") || "less than 1m";
   };
 
   const paginatedNfts = nfts.slice(
@@ -349,7 +362,6 @@ export default function AuctionPage() {
               justifyContent: "center", // Center the single card horizontally
               alignItems: "center", // Center content in both directions
               flexWrap: "wrap",
-              // border: "1px solid #FF0000",
             }}
           >
             <Card
@@ -405,25 +417,9 @@ export default function AuctionPage() {
               <p>
                 <strong>Auction Duration:</strong>{" "}
                 {nft.auction?.end_time
-                  ? `${calculateDaysRemaining(nft.auction.end_time ?? 0)} days left`
+                  ? `${calculateTimeRemaining(nft.auction.end_time ?? 0)}`
                   : "N/A"}
               </p>{" "}
-              <p>
-                <strong>End Time:</strong>{" "}
-                {nft.auction?.end_time && nft.auction.end_time}
-              </p>
-              <p>
-                Is end time greater than current time:{" "}
-                {String(
-                  nft.auction?.end_time && currentTime < nft.auction.end_time
-                )}
-              </p>
-              <p>
-                Is end time lesser than current time:{" "}
-                {String(
-                  nft.auction?.end_time && currentTime > nft.auction.end_time
-                )}
-              </p>
               <p>
                 <strong>Highest Bid:</strong> {nft.auction?.highest_bid} APT by{" "}
                 {truncateAddress(nft.auction?.highest_bidder ?? "")}
@@ -477,7 +473,7 @@ export default function AuctionPage() {
             <p>
               <strong>Auction Duration:</strong>{" "}
               {selectedNft.auction?.end_time
-                ? `${calculateDaysRemaining(selectedNft.auction.end_time)} days left`
+                ? `${calculateTimeRemaining(selectedNft.auction.end_time)} days left`
                 : "N/A"}
             </p>
             <p>

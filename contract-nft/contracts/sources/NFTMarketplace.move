@@ -406,7 +406,7 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
             nft_id: u64
         ) acquires AuctionStore, Marketplace {
             let auction_store = borrow_global_mut<AuctionStore>(seller);
-
+    
             // Perform cancellation checks first
             let auction = table::borrow(&auction_store.auctions, nft_id);
             assert!(auction.seller == signer::address_of(account), E_NOT_AUCTION_OWNER);

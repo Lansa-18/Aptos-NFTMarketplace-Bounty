@@ -173,10 +173,6 @@ const MyNFTs: React.FC = () => {
     setMinBid("");
   };
 
-  // const isAuctionFinalized = (nft: NFT) => {
-  //   return nft.
-  // }
-
   const handleTransferNftClick = (nft: NFT) => {
     setSelectedNftForTransfer(nft);
     setIsTransferModalVisible(true);
