@@ -102,9 +102,9 @@ const NavBar: React.FC<NavBarProps> = ({ onMintNFTClick }) => {
               My Collection
             </Link>
           </Menu.Item>
-          <Menu.Item key="my-auctions">
-            <Link to="/my-auctions" style={{ color: "#fff" }}>
-              My Auctions
+          <Menu.Item key="auctions">
+            <Link to="/auctions" style={{ color: "#fff" }}>
+              Auctions
             </Link>
           </Menu.Item>
           <Menu.Item key="mint-nft" onClick={onMintNFTClick}>

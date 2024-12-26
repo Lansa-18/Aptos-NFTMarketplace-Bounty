@@ -38,7 +38,7 @@ function App() {
 
       const entryFunctionPayload = {
         type: "entry_function_payload",
-        function: `${marketplaceAddr}::NFTMarketplaceV2::mint_nft`,
+        function: `${marketplaceAddr}::NFTMarketplaceV3::mint_nft`,
         type_arguments: [],
         arguments: [nameVector, descriptionVector, uriVector, values.rarity],
       };
@@ -68,11 +68,11 @@ function App() {
             element={<MarketView marketplaceAddr={marketplaceAddr} />}
           />
           <Route path="/my-nfts" element={<MyNFTs />} />
-          <Route path="/my-auctions" element={<AuctionPage />} />
+          <Route path="/auctions" element={<AuctionPage />} />
         </Routes>
         <Modal
           title="Mint New NFT"
-          visible={isModalVisible}
+          open={isModalVisible}
           onCancel={() => setIsModalVisible(false)}
           footer={null}
         >

@@ -1,7 +1,7 @@
 // TODO# 1: Define Module and Marketplace Address
 address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
 
-    module NFTMarketplaceV2 {
+    module NFTMarketplaceV3 {
         use 0x1::signer;
         use 0x1::vector;
         use 0x1::coin;
@@ -284,6 +284,12 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
             }
         }
 
+        // Check Auction store Initialization
+        #[view]
+        public fun is_auction_store_initialized(marketplace_addr: address): bool {
+            exists<AuctionStore>(marketplace_addr)
+        }
+
         // TODO #23: Create Auction for NFT
         public entry fun create_auction(
             account: &signer,
@@ -366,7 +372,6 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
             let auction = table::borrow_mut(&mut auction_store.auctions, nft_id);
 
             // Auction completion checks
-            assert!(timestamp::now_seconds() > auction.end_time, E_AUCTION_ENDED);
             assert!(!auction.is_completed, E_AUCTION_STILL_ACTIVE);
 
             let marketplace = borrow_global_mut<Marketplace>(seller);
@@ -384,12 +389,14 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
 
                 // Transfer NFT ownership
                 nft_ref.owner = auction.highest_bidder;
+            };
                 nft_ref.for_sale = false;
                 nft_ref.price = 0;
-            };
+                nft_ref.is_auctioned = false;
 
-            // Mark auction as completed
+            // Mark auction as completed and remove from store
             auction.is_completed = true;
+            table::remove(&mut auction_store.auctions, nft_id);
         }
 
         // TODO# 26: Cancel Auction 
@@ -448,6 +455,6 @@ address 0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4 {
             nft.for_sale = false;
             nft.price = 0;
         }
-
     }
+    
 }

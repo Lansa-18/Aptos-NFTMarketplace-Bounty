@@ -13,7 +13,7 @@ import {
 } from "antd";
 import { AptosClient } from "aptos";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import DeleteModal from "../components/DeleteModal";
 
 const { Title } = Typography;
@@ -78,15 +78,13 @@ export default function AuctionPage() {
   const marketplaceAddr =
     "0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4";
 
-  useEffect(() => {
-    handleFetchNfts(undefined);
-  }, []);
+  const currentTime = Date.now() / 1000;
 
-  const handleFetchNfts = async (selectedRarity: number | undefined) => {
+  const handleFetchNfts = useCallback(async () => {
     try {
       const response = await client.getAccountResource(
         marketplaceAddr,
-        "0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4::NFTMarketplaceV2::Marketplace"
+        "0xe9d259e1ecdec67d79f314e7c160ed1b3a60b9ea6cc3714194faab69832968e4::NFTMarketplaceV3::Marketplace"
       );
       const nftList = (response.data as { nfts: NFT[] }).nfts;
 
@@ -113,7 +111,7 @@ export default function AuctionPage() {
         filteredNft.map(async (nft) => {
           try {
             const auctionResponse = await client.view({
-              function: `${marketplaceAddr}::NFTMarketplaceV2::get_auction_details`,
+              function: `${marketplaceAddr}::NFTMarketplaceV3::get_auction_details`,
               type_arguments: [],
               arguments: [marketplaceAddr, nft.id],
             });
@@ -143,23 +141,22 @@ export default function AuctionPage() {
           }
         })
       );
-      // setAuctionDetails(auctionDetailsPromise);
-      // console.log("auctionDetailsPromises:", auctionDetails);
 
-      // Filter NFTs based on `for_sale` property and rarity if selected
-      // const filteredNfts = decodedNfts.filter(
-      //   (nft) =>
-      //     nft.is_auctioned &&
-      //     (selectedRarity === undefined || nft.rarity === selectedRarity)
-      // );
-
-      setNfts(auctionDetailsPromise);
+      const activeAuctions = auctionDetailsPromise.filter(
+        (auction) =>
+          auction.auction?.end_time && currentTime < auction.auction.end_time
+      );
+      setNfts(activeAuctions);
       setCurrentPage(1);
     } catch (error) {
       console.error("Error fetching NFTs by rarity:", error);
       message.error("Failed to fetch NFTs.");
     }
-  };
+  }, [currentTime]);
+
+  useEffect(() => {
+    handleFetchNfts();
+  }, [handleFetchNfts]);
 
   const handleBidForAuction = (nft: NFT) => {
     setSelectedNft(nft);
@@ -188,23 +185,23 @@ export default function AuctionPage() {
       console.log(`Cancelling auction for NFT ID: ${selectedNftToDelete?.id}`);
       const entryFunctionPayload = {
         type: "entry_function_payload",
-        function: `${marketplaceAddr}::NFTMarketplaceV2::cancel_auction`,
+        function: `${marketplaceAddr}::NFTMarketplaceV3::cancel_auction`,
         type_arguments: [],
         arguments: [marketplaceAddr, selectedNftToDelete?.id],
       };
 
-      const response = await (window as any).aptos.signAndSubmitTransaction(entryFunctionPayload);
+      const response = await (window as any).aptos.signAndSubmitTransaction(
+        entryFunctionPayload
+      );
       await client.waitForTransaction(response.hash);
 
       message.success("Auction canceled successfully!");
       console.log(response);
       setIsDeleteModalVisibe(false);
       setSelectedNftToDelete(null);
-      
     } catch (error) {
       console.error("Error canceling auction:", error);
-      message.error("Failed to cancel auction.");
-      
+      message.error(`Failed to cancel auction`);
     }
   };
 
@@ -228,7 +225,7 @@ export default function AuctionPage() {
     try {
       const entryFunctionPayload = {
         type: "entry_function_payload",
-        function: `${marketplaceAddr}::NFTMarketplaceV2::place_bid`,
+        function: `${marketplaceAddr}::NFTMarketplaceV3::place_bid`,
         type_arguments: [],
         arguments: [marketplaceAddr, selectedNft.id, Number(bidAmount)],
       };
@@ -246,6 +243,41 @@ export default function AuctionPage() {
     } catch (error) {
       console.error("Error placing bid:", error);
       message.error("Failed to place bid.");
+    }
+  };
+
+  // Finalizing the auction once it has ended
+  const finalizeAuction = async (nft: NFT) => {
+    if (nft.auction?.is_completed) {
+      message.error("Auction has already been finalized.");
+      return;
+    }
+
+    if (nft.auction?.end_time && Date.now() < nft.auction.end_time) {
+      message.error("Auction has not ended yet.");
+      return;
+    }
+
+    try {
+      console.log(`Finalizing auction for NFT ID: ${nft.id}`);
+      const entryFunctionPayload = {
+        type: "entry_function_payload",
+        function: `${marketplaceAddr}::NFTMarketplaceV3::finalize_auction`,
+        type_arguments: [],
+        arguments: [marketplaceAddr, nft.id],
+      };
+
+      const response = await (window as any).aptos.signAndSubmitTransaction(
+        entryFunctionPayload
+      );
+      await client.waitForTransaction(response.hash);
+
+      message.success("Auction finalized successfully!");
+      await handleFetchNfts();
+      console.log(response);
+    } catch (error) {
+      console.error("Error finalizing auction:", error);
+      message.error("Failed to finalize auction.");
     }
   };
 
@@ -281,9 +313,7 @@ export default function AuctionPage() {
           onChange={(e) => {
             const selectedRarity = e.target.value;
             setRarity(selectedRarity);
-            handleFetchNfts(
-              selectedRarity === "all" ? undefined : selectedRarity
-            );
+            handleFetchNfts();
           }}
           buttonStyle="solid"
         >
@@ -315,9 +345,11 @@ export default function AuctionPage() {
             lg={6}
             xl={6}
             style={{
-              display: "flex",
+              display: "",
               justifyContent: "center", // Center the single card horizontally
               alignItems: "center", // Center content in both directions
+              flexWrap: "wrap",
+              // border: "1px solid #FF0000",
             }}
           >
             <Card
@@ -332,9 +364,20 @@ export default function AuctionPage() {
                 <Button type="link" onClick={() => handleBidForAuction(nft)}>
                   Bid Now
                 </Button>,
-                <Button type="link" onClick={() => handleDeleteModalClick(nft)}>
-                  Cancel Auction
-                </Button>,
+                nft.auction?.end_time &&
+                currentTime < nft.auction?.end_time &&
+                nft.auction.highest_bid < 1 ? (
+                  <Button
+                    type="link"
+                    onClick={() => handleDeleteModalClick(nft)}
+                  >
+                    Cancel Auction
+                  </Button>
+                ) : (
+                  <Button type="link" onClick={() => finalizeAuction(nft)}>
+                    Finalize Auction
+                  </Button>
+                ),
               ]}
             >
               {/* Rarity Tag */}
@@ -353,17 +396,41 @@ export default function AuctionPage() {
                 description={`Price: ${nft.auction?.minimum_bid} APT`}
               />
               <p>{nft.description}</p>
-              <p>ID: {nft.id}</p>
-              <p>Owner: {truncateAddress(nft.owner)}</p>
               <p>
-                Auction Duration:{" "}
+                <strong>ID:</strong> {nft.id}
+              </p>
+              <p>
+                <strong>Owner:</strong> {truncateAddress(nft.owner)}
+              </p>
+              <p>
+                <strong>Auction Duration:</strong>{" "}
                 {nft.auction?.end_time
                   ? `${calculateDaysRemaining(nft.auction.end_time ?? 0)} days left`
                   : "N/A"}
               </p>{" "}
               <p>
-                Highest Bid: {nft.auction?.highest_bid} APT by{" "}
+                <strong>End Time:</strong>{" "}
+                {nft.auction?.end_time && nft.auction.end_time}
+              </p>
+              <p>
+                Is end time greater than current time:{" "}
+                {String(
+                  nft.auction?.end_time && currentTime < nft.auction.end_time
+                )}
+              </p>
+              <p>
+                Is end time lesser than current time:{" "}
+                {String(
+                  nft.auction?.end_time && currentTime > nft.auction.end_time
+                )}
+              </p>
+              <p>
+                <strong>Highest Bid:</strong> {nft.auction?.highest_bid} APT by{" "}
                 {truncateAddress(nft.auction?.highest_bidder ?? "")}
+              </p>
+              <p>
+                <strong>Is Finalized:</strong>{" "}
+                {String(nft.auction?.is_completed)}
               </p>
             </Card>
           </Col>
