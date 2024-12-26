@@ -74,7 +74,7 @@ npm start
 
 **Creating an Auction:**
 
-- Click on the "Create Auction" button on your NFT
+- Click on the **"Create Auction"** button on your NFT
 - Set the minimum bid price in APT
 - Set the auction duration (minimum 1 day)
 - Confirm and sign the transaction
@@ -90,7 +90,7 @@ npm start
 
 - Only the auction creator can cancel
 - Navigate to your active auction
-- Click "Cancel Auction"
+- Click **"Cancel Auction"**
 - Confirm and sign the transaction
 
 **Finalizing an Auction:**
