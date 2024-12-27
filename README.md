@@ -44,6 +44,10 @@ curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
 # Verify installation
 aptos info
 
+# Setting up your wallet address as the address of the contract
+# Navigate to the contract-nft/contracts/sources directory
+# Open the NFTMarketplace.move file and replace the address at line 2 with your wallet address
+
 # Deploy contract
 cd contract-nft/contracts
 aptos init testnet
